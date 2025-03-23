@@ -1,12 +1,16 @@
 import { gql } from "@apollo/client"; // Import the gql function from Apollo Client to define GraphQL queries
 import client from "client"; // Import the Apollo Client instance to interact with the GraphQL API
+import { BlockRenderer } from "./components/BlockRenderer/BlockRenderer";
+import { cleanAndTransformBlocks } from "utils/cleanAndTransformBlocks";
 
 // Page Component (Home)
 // This is the default exported component for the Next.js page
-// It receives props from getStaticProps and renders content
+// It receives props from getStaticProps() and renders content
 export default function Home(props) {
 	console.log("PROPS:", props);
-	return <div>My website.</div>;
+	return <div>
+		<BlockRenderer blocks={props.blocks} />
+	</div>;
 }
 
 /* 
@@ -17,14 +21,16 @@ export default function Home(props) {
 */
 export const getStaticProps = async () => {
 	// The client.query function is used to send a GraphQL query using Apollo Client
+	// Writing `const { data }` instead of `const response = await client.query({ ... }); const data = response.data;` (object destructuring)
 	const { data } = await client.query({
 		// Use a tagged template literal (gql function from the Apollo library)
 		// To grab the title of every page (testing example)
 		query: gql`
 			query NewQuery {
-				pages {
-					nodes {
-						title
+				nodeByUri(uri: "/") {
+					... on Page {
+					id
+					blocks(postTemplate: false)
 					}
 				}
 			}
@@ -35,7 +41,7 @@ export const getStaticProps = async () => {
 	// Next.js will use this at build time to generate a static HTML page
 	return {
 		props: {
-			data, // Pass the fetched GraphQL data as a prop
+			blocks: cleanAndTransformBlocks(data.nodeByUri.blocks), 
 			myexampleprop: "test"
 		}
 	}
